@@ -1,4 +1,5 @@
 import { strict as assert } from "assert";
+import { deepStrictEqual } from "node:assert";
 import { PetController } from "../api/controller/pet.controller";
 
 const pet = new PetController();
@@ -32,5 +33,62 @@ describe("Pet", function () {
                 (tag: any) => tag.name == "tag1")
         )
         );
+    });
+    it("can be added, updated and deleted", async function () {
+        const petToCreate = {
+            "id": 0,
+            "category": {
+              "id": 0,
+              "name": "string"
+            },
+            "name": "doggie",
+            "photoUrls": [
+              "string"
+            ],
+            "tags": [
+              {
+                "id": 0,
+                "name": "string"
+              }
+            ],
+            "status": "available"
+          };
+
+        const addedPet = await pet.addNew(petToCreate);
+
+        assert.deepEqual(addedPet, {
+            ...petToCreate,
+            id: addedPet.id
+        }, "Expected created pet to match data used upon creation")
+
+        const foundAddedPet = await pet.getById(addedPet.id);
+        assert.deepEqual(foundAddedPet, {
+            ...petToCreate,
+            id: addedPet.id
+        }, "Expected found pet to match data used upon creation")
+
+        const newerPet = {
+            "id": addedPet.id,
+            "category": {
+              "id": 1,
+              "name": "string2"
+            },
+            "name": "cat",
+            "photoUrls": [
+              "http://test.com/image.jpg"
+            ],
+            "tags": [
+              {
+                "id": 1,
+                "name": "string2"
+              }
+            ],
+            "status": "pending"
+          };
+
+        const updatedPet = pet.update(newerPet);
+        assert.deepEqual(updatedPet, newerPet, "Expected updated pet to match data used upon creation")  
+
+        await pet.delete(addedPet.id);
     });
 });
