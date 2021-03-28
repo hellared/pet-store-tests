@@ -1,6 +1,6 @@
 import { URLSearchParams } from "url";
 import { definitions, operations } from "../../.temp/types";
-import { JsonRequest } from "../request";
+import { JsonRequest } from "http-req-builder";
 import { loadAPIspec, validate } from "../validator";
 
 export class PetController {

@@ -1,5 +1,5 @@
 import { operations } from "../../.temp/types";
-import { JsonRequest } from "../request";
+import { JsonRequest } from "http-req-builder";
 
 export class StoreController {
     async getInventory() {
