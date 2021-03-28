@@ -2,8 +2,8 @@ import { JsonRequest } from "http-req-builder";
 import { ResponseValidator } from "response-openapi-validator";
 
 const responseValidator = new ResponseValidator({
-    openApiSpecPath: "http://93.126.97.71:10080/api/swagger.json",
-    apiPathPrefix: "/api",
+    openApiSpecPath: 'http://93.126.97.71:10080/api/swagger.json',
+    apiPathPrefix: '/api',
     ajvOptions: {
         allErrors: true,
         verbose: true,
@@ -20,6 +20,7 @@ export class JsonRequestWithValidation extends JsonRequest {
     async send<T = any>() {
         // Example is simplified: in case 4xx/5xx validation won't be applied
         const response = await super.send<T>()
+
         await responseValidator.assertResponse({
             method: response.request?.options?.method,
             requestUrl: response?.request?.requestUrl,

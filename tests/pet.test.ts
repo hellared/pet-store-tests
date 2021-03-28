@@ -1,93 +1,108 @@
-import { strict as assert } from "assert";
-import { PetController } from "../api/controller/pet.controller";
-import { definitions } from "../.temp/types";
+import { strict as assert } from 'assert'
+import { definitions } from '../.temp/types';
+import { ApiClient } from '../api/client';
 
-const pet = new PetController();
-
-describe("Pet", function () {
-    it("can be received by his id", async function () {
-        const body = await pet.getById(2);
-        assert(body.id == 2, `Expected API return pet with id 2, but instead got with ${body.id}`);
+describe('Pet', () => {
+    it('can be received by id', async function () {
+        const petResp = await ApiClient.unauthorized().pet.getById(1)
+        assert(petResp.id == 1)
     })
-    it("can be received by status", async function () {
-        let body = await pet.findByStatus("available");
-        assert(body.length > 0);
 
-        body = await pet.findByStatus("pending");
-        assert(body.length > 0);
+    it('can be received by status', async function () {
+        const client = ApiClient.unauthorized()
+        let petResp = await client.pet.findByStatus('available')
+        assert(petResp.length > 0)
+        assert(petResp.every(pet => pet.status == 'available'))
 
-        body = await pet.findByStatus("sold");
-        assert(body.length > 0);
+        petResp = await client.pet.findByStatus('pending')
+        assert(petResp.length > 0)
+        assert(petResp.every(pet => pet.status == 'pending'))
 
-        body = await pet.findByStatus(["pending", "available"]);
-        assert(body.length > 0);
-        assert(body.some(pet => pet.status == "pending"));
-        assert(body.some(pet => pet.status == "available"));
-        assert(!body.some(pet => pet.status == "sold"));
-    });
-    it("can be received by tags", async function () {
-        const body = await pet.findByTags("tag1");
-        assert(body.length > 0);
-        assert(body.every(
-            pet => pet.tags.some(
-                tag => tag.name == "tag1")
+        petResp = await client.pet.findByStatus('sold')
+        assert(petResp.length > 0)
+        assert(petResp.every(pet => pet.status == 'sold'))
+
+        petResp = await client.pet.findByStatus(['pending', 'available'])
+        assert(petResp.length > 0)
+        assert(petResp.some(pet => pet.status == 'available'))
+        assert(petResp.some(pet => pet.status == 'pending'))
+        assert(!petResp.some(pet => pet.status == 'sold'))
+    })
+
+    it('can be received by tag', async function () {
+        const client = ApiClient.unauthorized()
+        const petResp = await client.pet.findByTags('tag1')
+        assert(petResp.length > 0)
+        assert(petResp.some(pet => pet.tags.some(tag => tag.name == 'tag1')))
+    })
+
+    it('can be added, updated, and deleted', async function () {
+        const adminClient = await ApiClient.loginAs({ username: 'admin', password: 'admin' });
+
+        const petToCreate: Omit<definitions['Pet'], "id"> = {
+            category: {
+                id: 0,
+                name: "string"
+            },
+            name: "Cat",
+            photoUrls: [
+                "http://test.com/image.jpg"
+            ],
+            tags: [
+                {
+                    id: 0,
+                    name: "string"
+                }
+            ],
+            status: "available"
+        }
+
+        const addedPet = await adminClient.pet.addNew(petToCreate)
+        assert.deepEqual(
+            addedPet,
+            {
+                ...petToCreate,
+                id: addedPet.id
+            },
+            `Expected created pet to match data used upon creation`
         )
-        );
-    });
-    it("can be added, updated and deleted", async function () {
-        const petToCreate: Omit<definitions["Pet"], "id"> = {
-            "category": {
-              "id": 0,
-              "name": "string"
+        const foundAddedPet = await adminClient.pet.getById(addedPet.id)
+        assert.deepEqual(
+            foundAddedPet,
+            {
+                ...petToCreate,
+                id: addedPet.id
             },
-            "name": "doggie",
-            "photoUrls": [
-              "string"
-            ],
-            "tags": [
-              {
-                "id": 0,
-                "name": "string"
-              }
-            ],
-            "status": "available"
-          };
-
-        const addedPet = await pet.addNew(petToCreate);
-    
-        assert.deepEqual(addedPet, {
-            ...petToCreate,
-            id: addedPet.id
-        }, "Expected created pet to match data used upon creation")
-
-        const foundAddedPet = await pet.getById(addedPet.id);
-        assert.deepEqual(foundAddedPet, {
-            ...petToCreate,
-            id: addedPet.id
-        }, "Expected found pet to match data used upon creation")
-
-        const newerPet: definitions["Pet"] = {
-            "id": addedPet.id,
-            "category": {
-              "id": 1,
-              "name": "string2"
+            `Expected found pet to match created pet`
+        )
+        const newerPet: definitions['Pet'] = {
+            id: addedPet.id,
+            category: {
+                id: 1,
+                name: "string2"
             },
-            "name": "cat",
-            "photoUrls": [
-              "http://test.com/image.jpg"
+            name: "Dog",
+            photoUrls: [
+                "http://test.com/image2.jpg"
             ],
-            "tags": [
-              {
-                "id": 1,
-                "name": "string2"
-              }
+            tags: [
+                {
+                    id: 1,
+                    name: "string2"
+                }
             ],
-            "status": "pending"
-          };
-
-        const updatedPet = pet.update(newerPet);
-        assert.deepEqual(updatedPet, newerPet, "Expected updated pet to match data used upon creation")  
-
-        await pet.delete(addedPet.id);
-    });
-});
+            status: "pending"
+        }
+        const updatedPet = await adminClient.pet.update(newerPet)
+        assert.deepEqual(
+            updatedPet,
+            {
+                ...newerPet,
+                id: addedPet.id
+            },
+            `Expected updated pet to equal data used upon updating`
+        )
+        await adminClient.pet.delete(addedPet.id)
+        // TODO: assert 404 error on attempt to get pet that was deleted
+    })
+}) 
